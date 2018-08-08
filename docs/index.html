@@ -1,59 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>imageCapture webAPI demo</title>
-<style>
-</style>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Demo</title>
+ <style>
+body {margin:0; padding:0; background:black;}
+/* filter:grayscale(100%) contrast(250%); */
+video {position:absolute; width:100%; height:100%; object-fit: cover; transform:scaleX(-1);}
+#overlay {
+  position:absolute;
+  cursor: move;
+  background:white;
+  z-index:2;
+}
+ </style>
 </head>
 <body>
-<video autoplay style="display:none;"></video>
-<canvas id="grabFrameCanvas"></canvas>
+<canvas id="overlay"></canvas>
+<video autoplay playsinline muted></video>
 <script>
-grabFrameCanvas = null
-grabFrameCtx = null
+var qs = {}
+var video
+var overlay
+var drag = {
+  el:null,
+  initial:{x:0,y:0},
+  offset:{x:0,y:0},
+  current:{x:0,y:0}
+}
+function dragStart(e) {
+  if (e.type === "touchstart") {
+    drag.initial.x = e.touches[0].clientX - drag.offset.x
+    drag.initial.y = e.touches[0].clientY - drag.offset.y
+  } else {
+    drag.initial.x = e.clientX - drag.offset.x
+    drag.initial.y = e.clientY - drag.offset.y
+  }
+  if (e.target === overlay) {
+    drag.el = e.target
+  }
+}
 
-function drawCanvas(canvas, img) {
-  let ctx = canvas.getContext('2d')
-  if (!ctx) return
-  canvas.width = img.width
-  canvas.height = img.height
-  ctx.drawImage(img,0,0)
+function dragEnd(e) {
+  drag.el = null
+  drag.initial.x = drag.current.x
+  drag.initial.y = drag.current.y
+}
 
-  let imgData = ctx.getImageData(0,0,img.width,img.height)
+function dragMove(e) {
+  if (!drag.el) return
+  if (e.type === "touchmove") {
+    e.preventDefault()
+    drag.current.x = e.touches[0].clientX - drag.initial.x
+    drag.current.y = e.touches[0].clientY - drag.initial.y
+  } else {
+    drag.current.x = e.clientX - drag.initial.x
+    drag.current.y = e.clientY - drag.initial.y
+  }
+  drag.offset.x = drag.current.x
+  drag.offset.y = drag.current.y
+  drag.el.style.transform = "translate3d(" + drag.current.x + "px, " + drag.current.y + "px, 0)"
+}
+
+function loop() {
+  if ((!video) || (!overlay)) return
+  let ctx = overlay.getContext('2d')
+  let r = overlay.getBoundingClientRect()
+  ctx.drawImage(video,r.x,r.y,r.width,r.height,0,0,overlay.width,overlay.height)
+  let imgData = ctx.getImageData(0,0,overlay.width,overlay.height)
   let pixels = imgData.data
   for (var i=0; i<pixels.length; i+=4) {
-   let g = pixels[i]*.3 + pixels[i+1]*.59 + pixels[i+2]*.11
+   let g = pixels[i]*.34 + pixels[i+1]*.5 + pixels[i+2]*.16
    pixels[i]=g
    pixels[i+1]=g
    pixels[i+2]=g
   }
   ctx.putImageData(imgData,0,0,0,0,imgData.width,imgData.height)
+  requestAnimationFrame(loop)
 }
 
-grabFrame = function() {
-  if (!grabFrameCanvas) return
-  imageCapture.grabFrame().then(imageBitmap => {
-    drawCanvas(grabFrameCanvas, imageBitmap)
-  })
-  requestAnimationFrame(grabFrame)
+let main = function() {
+  (window.location.search || '?').substr(1).replace(/([^&=]+)=?([^&]*)(?:&+|$)/g, function(match, k, v) {qs[k] = v;})
+  let fm = ((qs.camera) && ('front' == qs.camera)) ? 'user' : 'environment'
+  let w = 250
+  if (qs.w) {
+    let i = Number(qs.w)
+    if (i && (i < window.innerWidth)) w = i
+  }
+  let h = w
+  if (qs.h) {
+    let i = Number(qs.h)
+    if (i && (i < window.innerHeight)) h = i
+  }
+  video = document.querySelector('video')
+  navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:fm}}).then(function success(stream) {video.srcObject = stream})
+  overlay = document.getElementById('overlay')
+  overlay.style.width = w+'px'
+  overlay.style.height = h+'px'
+  //overlay.style.left = (window.innerWidth-w)/2 + 'px'
+  //overlay.style.top = (window.innerHeight-h)/2 + 'px'
+  document.addEventListener("touchstart", dragStart, false)
+  document.addEventListener("touchend", dragEnd, false)
+  document.addEventListener("touchmove", dragMove, false)
+  document.addEventListener("mousedown", dragStart, false)
+  document.addEventListener("mouseup", dragEnd, false)
+  document.addEventListener("mousemove", dragMove, false)
+  loop()
 }
-
-main = function() {
-  grabFrameCanvas = document.querySelector('#grabFrameCanvas')
-  grabFrameCtx = grabFrameCanvas.getContext('2d')
-  document.querySelector('video').addEventListener('play', grabFrame)
-  navigator.mediaDevices.getUserMedia({video: true}).then(mediaStream => {
-    document.querySelector('video').srcObject = mediaStream
-    imageCapture = new ImageCapture(mediaStream.getVideoTracks()[0])
-  }).catch(error => {
-    if (error) console.log(error)
-  })
-}
-
-window.addEventListener('load', main, false);
+window.addEventListener('load', main, false)
 </script>
-  
 </body>
 </html>
