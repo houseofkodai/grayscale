@@ -6,8 +6,7 @@
  <title>Demo</title>
  <style>
 body {margin:0; padding:0; background:black;}
-/* filter:grayscale(100%) contrast(250%); */
-video {position:absolute; width:100%; height:100%; object-fit: cover; transform:scaleX(-1);}
+video {position:absolute; width:100%; height:100%; object-fit: cover;}
 #overlay {
   position:absolute;
   cursor: move;
@@ -67,7 +66,7 @@ function loop() {
   if ((!video) || (!overlay)) return
   let ctx = overlay.getContext('2d')
   let r = overlay.getBoundingClientRect()
-  ctx.drawImage(video,r.x,r.y,r.width,r.height,0,0,overlay.width,overlay.height)
+  ctx.drawImage(video,(r.x%video.videoWidth),(r.y%video.videoHeight),r.width,r.height,0,0,overlay.width,overlay.height)
   let imgData = ctx.getImageData(0,0,overlay.width,overlay.height)
   let pixels = imgData.data
   for (var i=0; i<pixels.length; i+=4) {
@@ -98,8 +97,6 @@ let main = function() {
   overlay = document.getElementById('overlay')
   overlay.style.width = w+'px'
   overlay.style.height = h+'px'
-  //overlay.style.left = (window.innerWidth-w)/2 + 'px'
-  //overlay.style.top = (window.innerHeight-h)/2 + 'px'
   document.addEventListener("touchstart", dragStart, false)
   document.addEventListener("touchend", dragEnd, false)
   document.addEventListener("touchmove", dragMove, false)
