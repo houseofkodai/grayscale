@@ -66,16 +66,9 @@ function loop() {
   if ((!video) || (!overlay)) return
   let ctx = overlay.getContext('2d')
   let r = overlay.getBoundingClientRect()
+  ctx.filter = 'grayscale(100%) contrast(250%)'
   ctx.drawImage(video,(r.x%video.videoWidth),(r.y%video.videoHeight),r.width,r.height,0,0,overlay.width,overlay.height)
-  let imgData = ctx.getImageData(0,0,overlay.width,overlay.height)
-  let pixels = imgData.data
-  for (var i=0; i<pixels.length; i+=4) {
-   let g = pixels[i]*.34 + pixels[i+1]*.5 + pixels[i+2]*.16
-   pixels[i]=g
-   pixels[i+1]=g
-   pixels[i+2]=g
-  }
-  ctx.putImageData(imgData,0,0,0,0,imgData.width,imgData.height)
+  ctx.filter = ''
   requestAnimationFrame(loop)
 }
 
